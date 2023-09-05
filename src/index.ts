@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import compression from "compression";
 import cors from "cors";
 import mongoose from "mongoose";
+import passport from "passport";
 
 const app = express();
 
@@ -19,6 +20,8 @@ app.use(bodyParser.urlencoded({ extended: true}))
 
 app.use(compression());
 app.use(cookieParser());
+
+app.use(passport.initialize());
 
 const server = http.createServer(app);
 
