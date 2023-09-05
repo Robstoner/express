@@ -25,6 +25,8 @@ interface IUserModel extends Model<IUserDocument> {
     id: string,
     values: Record<string, any>
   ): Promise<IUserDocument>;
+  addTokenByEmail(email: string, token: string): Promise<IUserDocument>;
+  addToken(id: string, token: string): Promise<IUserDocument>;
 }
 
 const TokenSchema = new Schema({
@@ -40,7 +42,9 @@ const UserSchema: Schema<IUserDocument> = new Schema({
 });
 
 UserSchema.pre("save", async function (next) {
-  const user = this as IUser;
+  const user = this;
+
+  if (!user.isModified("password")) return next();
 
   const hash = await bcrypt.hash(user.password, 10);
 
@@ -82,6 +86,28 @@ UserSchema.statics.updateUserById = function updateUserById(
   values: Record<string, any>
 ) {
   return this.findByIdAndUpdate(id, values);
+};
+
+UserSchema.statics.addTokenByEmail = function addTokenByEmail(
+  email: string,
+  token: string
+) {
+  const expires = new Date(
+    Date.now() + Number(process.env.JWT_EXPIRATION_TIME) * 1000
+  );
+
+  return this.findOneAndUpdate(
+    { email },
+    {
+      $push: {
+        tokens: {
+          token,
+          expires,
+          isValid: true,
+        },
+      },
+    }
+  );
 };
 
 export const UserModel = model<IUserDocument, IUserModel>("User", UserSchema);
