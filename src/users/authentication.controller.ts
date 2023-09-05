@@ -11,15 +11,49 @@ router.get(
   async (req, res) => {
     const user: IUser = req.user as IUser;
 
-    const userObject = await UserModel.getUserByEmail(user.email);
+    const token = req.headers.authorization?.split(" ")[1];
 
-    userObject.tokens?.forEach((token) => {
-      token.isValid = false;
-    });
+    const userObj = await UserModel.findOne(
+      { email: user.email },
+      { tokens: { $elemMatch: { token } } }
+    );
+    console.log(userObj);
 
-    userObject.save();
+    if (!userObj) {
+      return res.status(401).json({ message: "Invalid token" });
+    }
+
+    if (!userObj.tokens?.find((value) => value.token === token)) {
+      return res.status(401).json({ message: "Invalid token" });
+    }
+
+    userObj.tokens[0].isValid = false;
+
+    userObj.save();
 
     res.json({ message: "User logged out" });
+  }
+);
+
+router.get(
+  "/logout-all",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res) => {
+    const user: IUser = req.user as IUser;
+
+    const userObj = await UserModel.findOne({ email: user.email });
+
+    if (!userObj) {
+      return res.status(401).json({ message: "Invalid token" });
+    }
+
+    userObj.tokens?.forEach((value) => {
+      value.isValid = false;
+    });
+
+    userObj.save();
+
+    res.json({ message: "User logged out of all sessions" });
   }
 );
 
