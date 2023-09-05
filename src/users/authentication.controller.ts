@@ -6,7 +6,7 @@ import { IUser, UserModel } from "./users.model";
 const router = Router();
 
 router.get(
-  "logout",
+  "/logout",
   passport.authenticate("jwt", { session: false }),
   async (req, res) => {
     const user: IUser = req.user as IUser;
@@ -70,9 +70,5 @@ router.post(
     res.json({ user, token });
   }
 );
-
-router.get("test", (req, res) => {
-  res.json({ message: "Test" });
-});
 
 export default router;
