@@ -17,7 +17,6 @@ router.get(
       { email: user.email },
       { tokens: { $elemMatch: { token } } }
     );
-    console.log(userObj);
 
     if (!userObj) {
       return res.status(401).json({ message: "Invalid token" });
