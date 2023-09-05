@@ -1,4 +1,4 @@
-import { IUser, UserModel } from "users/users.model";
+import { IUser, UserModel } from "@/users/users.model";
 import { Router } from "express";
 import { Error } from "mongoose";
 import passport from "passport";
@@ -22,7 +22,7 @@ passport.use(
       try {
         const user = await UserModel.createUser({ email, password });
 
-        return done(null, user);
+        return done(null, user as IUser);
       } catch (error) {
         done(error);
       }
@@ -48,7 +48,7 @@ passport.use(
           return done(null, false, { message: "Invalid password" });
         }
 
-        return done(null, user);
+        return done(null, user as IUser);
       } catch (error) {
         return done(error);
       }

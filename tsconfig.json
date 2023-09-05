@@ -1,13 +1,16 @@
 {
   "compilerOptions": {
+    "target": "ES6",
     "module": "NodeNext",
-    "baseUrl": "src",
+    "baseUrl": ".",
     "outDir": "dist",
+    "esModuleInterop": true,
     "sourceMap": true,
     "noImplicitAny": true,
+    "strict": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["src/*"]
     }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*"]
 }
