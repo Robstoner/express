@@ -27,7 +27,7 @@ interface IUserModel extends Model<IUserDocument> {
   getUsers(): Promise<IUserDocument[]>;
   getUserByEmail(email: string, select?: string): Promise<IUserDocument>;
   getUserById(id: string, select?: string): Promise<IUserDocument>;
-  getUserBySlug(slug: string): Promise<IUserDocument>;
+  getUserBySlug(slug: string, select?: string): Promise<IUserDocument>;
   createUser(values: Record<string, any>): Promise<IUserDocument>;
   deleteUserById(id: string): Promise<IUserDocument>;
   updateUserById(
@@ -73,6 +73,7 @@ UserSchema.pre("save", async function (next) {
   const hash = await bcrypt.hash(user.password, 10);
 
   user.password = hash;
+
   next();
 });
 
@@ -80,9 +81,10 @@ UserSchema.pre("save", async function (next) {
   const user = this;
 
   if (!user.isModified("firstName") && !user.isModified("lastName"))
-    return next();
+  return next();
 
   user.slug = slugify(user.firstName, user.lastName);
+
   next();
 });
 
@@ -100,16 +102,26 @@ UserSchema.statics.getUsers = function getUsers() {
   return this.find();
 };
 
-UserSchema.statics.getUserByEmail = function getUserByEmail(email: string, select?: string) {
+UserSchema.statics.getUserByEmail = function getUserByEmail(
+  email: string,
+  select?: string
+) {
   return this.findOne({ email }).select(select);
 };
 
-UserSchema.statics.getUserById = function getUserById(id: string, select?: string) {
+UserSchema.statics.getUserById = function getUserById(
+  id: string,
+  select?: string
+) {
   return this.findById(id).select(select);
 };
 
-UserSchema.statics.getUserBySlug = function getUserBySlug(slug: string) {
-  return this.findOne({ slug });
+UserSchema.statics.getUserBySlug = function getUserBySlug(
+  slug: string,
+  select?: string
+) {
+  console.log(slug);
+  return this.findOne({ slug }).select(select);
 };
 
 UserSchema.statics.createUser = function createUser(
@@ -127,6 +139,13 @@ UserSchema.statics.updateUserById = function updateUserById(
   values: Record<string, any>
 ) {
   return this.findByIdAndUpdate(id, values);
+};
+
+UserSchema.statics.updateUserBySlug = function updateUserBySlug(
+  slug: string,
+  values: Record<string, any>
+) {
+  return this.findOneAndUpdate({ slug }, values);
 };
 
 UserSchema.statics.addTokenByEmail = function addTokenByEmail(
