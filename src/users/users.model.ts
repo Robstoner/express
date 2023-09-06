@@ -1,8 +1,12 @@
 import { Document, Model, Schema, model } from "mongoose";
 import bcrypt from "bcrypt";
+import slugify from "../helpers/slugify";
 
 export interface IUser {
   email: string;
+  slug?: string;
+  firstName: string;
+  lastName: string;
   password?: string;
   providers?: {
     providerName: string;
@@ -21,12 +25,17 @@ interface IUserDocument extends IUser, Document {
 
 interface IUserModel extends Model<IUserDocument> {
   getUsers(): Promise<IUserDocument[]>;
-  getUserByEmail(email: string): Promise<IUserDocument>;
-  getUserById(id: string): Promise<IUserDocument>;
+  getUserByEmail(email: string, select?: string): Promise<IUserDocument>;
+  getUserById(id: string, select?: string): Promise<IUserDocument>;
+  getUserBySlug(slug: string): Promise<IUserDocument>;
   createUser(values: Record<string, any>): Promise<IUserDocument>;
   deleteUserById(id: string): Promise<IUserDocument>;
   updateUserById(
     id: string,
+    values: Record<string, any>
+  ): Promise<IUserDocument>;
+  updateUserBySlug(
+    slug: string,
     values: Record<string, any>
   ): Promise<IUserDocument>;
   addTokenByEmail(email: string, token: string): Promise<IUserDocument>;
@@ -42,13 +51,16 @@ const TokenSchema = new Schema({
 const AccountSchema = new Schema({
   providerName: { type: String, required: true },
   providerId: { type: String, required: true },
-})
+});
 
 const UserSchema: Schema<IUserDocument> = new Schema({
   email: { type: String, required: true, unique: true, lowercase: true },
+  slug: { type: String, unique: true, lowercase: true },
+  firstName: { type: String, required: true },
+  lastName: { type: String, required: true },
   password: { type: String, select: false },
   providers: [AccountSchema],
-  tokens: [TokenSchema],
+  tokens: { type: [TokenSchema], select: false },
 });
 
 UserSchema.pre("save", async function (next) {
@@ -61,6 +73,16 @@ UserSchema.pre("save", async function (next) {
   const hash = await bcrypt.hash(user.password, 10);
 
   user.password = hash;
+  next();
+});
+
+UserSchema.pre("save", async function (next) {
+  const user = this;
+
+  if (!user.isModified("firstName") && !user.isModified("lastName"))
+    return next();
+
+  user.slug = slugify(user.firstName, user.lastName);
   next();
 });
 
@@ -78,12 +100,16 @@ UserSchema.statics.getUsers = function getUsers() {
   return this.find();
 };
 
-UserSchema.statics.getUserByEmail = function getUserByEmail(email: string) {
-  return this.findOne({ email });
+UserSchema.statics.getUserByEmail = function getUserByEmail(email: string, select?: string) {
+  return this.findOne({ email }).select(select);
 };
 
-UserSchema.statics.getUserById = function getUserById(id: string) {
-  return this.findById(id);
+UserSchema.statics.getUserById = function getUserById(id: string, select?: string) {
+  return this.findById(id).select(select);
+};
+
+UserSchema.statics.getUserBySlug = function getUserBySlug(slug: string) {
+  return this.findOne({ slug });
 };
 
 UserSchema.statics.createUser = function createUser(

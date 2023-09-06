@@ -18,16 +18,23 @@ passport.use(
     {
       usernameField: "email",
       passwordField: "password",
+      passReqToCallback: true,
     },
-    async function verify(email: string, password: string, done) {
+    async function verify(req: Request, email: string, password: string, done) {
       try {
+        const { email1, password1, lastName, firstName } = req.body;
         const userExists = await UserModel.findOne({ email });
 
         if (userExists) {
           return done(null, false, { message: "User already exists" });
         }
 
-        const user = await UserModel.createUser({ email, password });
+        const user = await UserModel.createUser({
+          email,
+          password,
+          lastName,
+          firstName,
+        });
 
         return done(null, user as IUser);
       } catch (error) {
@@ -75,7 +82,7 @@ passport.use(
     jwt_payload: JwtPayload,
     done: VerifiedCallback
   ) {
-    const user = await UserModel.getUserByEmail(jwt_payload.email);
+    const user = await UserModel.getUserByEmail(jwt_payload.email, "+tokens");
 
     if (!user) {
       return done(null, false, { message: "User not found" });
@@ -109,10 +116,11 @@ passport.use(
     },
     async function (accessToken, refreshToken, profile, done) {
       const userProfile = await UserModel.findOne({
-        providers: { $elemMatch: { id: profile.id } },
+        providers: { $elemMatch: { providerId: profile.id } },
       });
 
       if (!userProfile) {
+        console.log("no provider");
         const userEmail = await UserModel.findOne({
           email: profile.emails?.[0].value,
         });
@@ -129,6 +137,13 @@ passport.use(
         } else {
           const user = await UserModel.createUser({
             email: profile.emails?.[0].value,
+            firstName: profile.name?.givenName
+              ? profile.name?.givenName
+              : profile.displayName,
+            lastName: profile.name?.familyName
+              ? profile.name?.familyName
+              : profile.displayName,
+            slug: "google" + profile.id,
             providers: [
               {
                 providerId: profile.id,

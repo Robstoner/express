@@ -8,7 +8,8 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 
 
-import auth from "./users/authentication.controller";
+import authRouter from "./users/authentication.controller";
+import usersRouter from "./users/users.controller";
 
 dotenv.config();
 
@@ -36,7 +37,8 @@ app.get("/", passport.authenticate("jwt", { session: false }), (req, res) => {
   res.json({ message: "Hello World" });
 });
 
-app.use("/auth", auth);
+app.use("/auth", authRouter);
+app.use("/users", usersRouter);
 
 server.listen(3000, () => {
   console.log("Server is running on port 3000");

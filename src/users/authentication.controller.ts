@@ -16,7 +16,7 @@ router.get(
     const userObj = await UserModel.findOne(
       { email: user.email },
       { tokens: { $elemMatch: { token } } }
-    );
+    ).select("+tokens");
 
     if (!userObj) {
       return res.status(401).json({ message: "Invalid token" });
@@ -40,7 +40,7 @@ router.get(
   async (req, res) => {
     const user: IUser = req.user as IUser;
 
-    const userObj = await UserModel.findOne({ email: user.email });
+    const userObj = await UserModel.getUserByEmail(user.email, "+tokens");
 
     if (!userObj) {
       return res.status(401).json({ message: "Invalid token" });
@@ -62,7 +62,7 @@ router.post(
   async (req, res) => {
     const user: IUser = req.user as IUser;
 
-    const userObject = await UserModel.getUserByEmail(user.email);
+    const userObject = await UserModel.getUserByEmail(user.email, "+tokens");
 
     const token = generateToken(user.email);
 
@@ -86,7 +86,7 @@ router.post(
   async (req, res) => {
     const user: IUser = req.user as IUser;
 
-    const userObject = await UserModel.getUserByEmail(user.email);
+    const userObject = await UserModel.getUserByEmail(user.email, "+tokens");
 
     const token = generateToken(user.email);
 
@@ -121,7 +121,7 @@ router.get(
   async (req, res) => {
     const user: IUser = req.user as IUser;
 
-    const userObject = await UserModel.getUserByEmail(user.email);
+    const userObject = await UserModel.getUserByEmail(user.email, "+tokens");
 
     const token = generateToken(user.email);
 
