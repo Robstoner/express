@@ -3,7 +3,11 @@ import bcrypt from "bcrypt";
 
 export interface IUser {
   email: string;
-  password: string;
+  password?: string;
+  providers?: {
+    providerName: string;
+    providerId: string;
+  }[];
   tokens?: {
     token: string;
     expires: Date;
@@ -35,9 +39,15 @@ const TokenSchema = new Schema({
   isValid: { type: Boolean, required: true },
 });
 
+const AccountSchema = new Schema({
+  providerName: { type: String, required: true },
+  providerId: { type: String, required: true },
+})
+
 const UserSchema: Schema<IUserDocument> = new Schema({
   email: { type: String, required: true, unique: true, lowercase: true },
-  password: { type: String, required: true, select: false },
+  password: { type: String, select: false },
+  providers: [AccountSchema],
   tokens: [TokenSchema],
 });
 
@@ -45,6 +55,8 @@ UserSchema.pre("save", async function (next) {
   const user = this;
 
   if (!user.isModified("password")) return next();
+
+  if (!user.password) return next();
 
   const hash = await bcrypt.hash(user.password, 10);
 
@@ -54,6 +66,9 @@ UserSchema.pre("save", async function (next) {
 
 UserSchema.methods.checkPassword = async function (password: string) {
   const user = this as IUser;
+
+  if (!user.password) return false;
+
   const compare = await bcrypt.compare(password, user.password);
 
   return compare;

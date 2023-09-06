@@ -2,6 +2,7 @@ import passport from "passport";
 
 import { IUser, UserModel } from "../users/users.model";
 import { Strategy as LocalStrategy } from "passport-local";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import {
   ExtractJwt,
   Strategy as JwtStrategy,
@@ -69,7 +70,11 @@ const options: StrategyOptions = {
 };
 
 passport.use(
-  new JwtStrategy(options, async function (req: Request, jwt_payload: JwtPayload, done: VerifiedCallback) {
+  new JwtStrategy(options, async function (
+    req: Request,
+    jwt_payload: JwtPayload,
+    done: VerifiedCallback
+  ) {
     const user = await UserModel.getUserByEmail(jwt_payload.email);
 
     if (!user) {
@@ -77,7 +82,7 @@ passport.use(
     }
 
     const headerToken = req.headers.authorization?.split(" ")[1];
-    
+
     const userToken = user.tokens?.find((value) => value.token === headerToken);
 
     if (!userToken || !userToken.isValid) {
@@ -93,6 +98,52 @@ passport.use(
 
     return done(null, user);
   })
+);
+
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+      callbackURL: process.env.GOOGLE_CALLBACK_URL as string,
+    },
+    async function (accessToken, refreshToken, profile, done) {
+      const userProfile = await UserModel.findOne({
+        providers: { $elemMatch: { id: profile.id } },
+      });
+
+      if (!userProfile) {
+        const userEmail = await UserModel.findOne({
+          email: profile.emails?.[0].value,
+        });
+
+        if (userEmail) {
+          userEmail.providers?.push({
+            providerId: profile.id,
+            providerName: profile.provider,
+          });
+
+          userEmail.save();
+
+          return done(null, userEmail);
+        } else {
+          const user = await UserModel.createUser({
+            email: profile.emails?.[0].value,
+            providers: [
+              {
+                providerId: profile.id,
+                providerName: profile.provider,
+              },
+            ],
+          });
+
+          return done(null, user);
+        }
+      }
+
+      return done(null, userProfile);
+    }
+  )
 );
 
 export default passport;

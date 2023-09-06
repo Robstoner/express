@@ -76,7 +76,7 @@ router.post(
 
     userObject.save();
 
-    res.json({ user, token });
+    res.json({ token });
   }
 );
 
@@ -100,7 +100,42 @@ router.post(
 
     userObject.save();
 
-    res.json({ user, token });
+    res.json({ token });
+  }
+);
+
+router.get(
+  "/login/google",
+  passport.authenticate("google", {
+    session: false,
+    scope: ["profile", "email"],
+  })
+);
+
+router.get(
+  "/login/google/callback",
+  passport.authenticate("google", {
+    session: false,
+    failureRedirect: "/login",
+  }),
+  async (req, res) => {
+    const user: IUser = req.user as IUser;
+
+    const userObject = await UserModel.getUserByEmail(user.email);
+
+    const token = generateToken(user.email);
+
+    userObject.tokens?.push({
+      token,
+      expires: new Date(
+        Date.now() + Number(process.env.JWT_EXPIRATION_TIME) * 1000
+      ),
+      isValid: true,
+    });
+
+    userObject.save();
+
+    res.json({ token });
   }
 );
 
