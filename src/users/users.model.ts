@@ -81,9 +81,28 @@ UserSchema.pre("save", async function (next) {
   const user = this;
 
   if (!user.isModified("firstName") && !user.isModified("lastName"))
-  return next();
+    return next();
 
   user.slug = slugify(user.firstName, user.lastName);
+
+  next();
+});
+
+UserSchema.pre("findOneAndUpdate", async function (next) {
+  var firstName = this.get("firstName");
+  var lastName = this.get("lastName");
+  if (!firstName && !lastName) return next();
+
+  const query = this.getQuery();
+
+  const user = await UserModel.findOne(query);
+
+  if (!user) return next();
+
+  if (!firstName) firstName = user.firstName;
+  if (!lastName) lastName = user.lastName;
+
+  this.set("slug", slugify(firstName, lastName));
 
   next();
 });
